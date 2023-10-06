@@ -5,6 +5,7 @@ type player = {
   mutable pos: int;
   mutable in_jail: bool;
   mutable turns_injail: int;
+  mutable doubles: int;
   mutable money: int;
   mutable properties: bool array
 } 
@@ -25,10 +26,12 @@ type case = {
 (*Création de la fonction mouvement*)
 let go_to_jail pl =
   pl.in_jail <- true;
-  pl.pos <- 30 
+  pl.turns_injail <- 0;
+  pl.pos <- 10
+
 let move (pl:player) (moves:int)=
   (*On vérifie si le joueur est en prison*)
-  if pl.in_jail then () else  
+  if pl.in_jail && pl.turns_injail < 3 then () else
   pl.pos <- (pl.pos + moves) mod 39;
   (*On vérifie si on veut envoyer le joueur en prison et on vérifie si il est dans une case allez en prison*)
   if (pl.pos = 30) then go_to_jail pl
@@ -36,32 +39,35 @@ let move (pl:player) (moves:int)=
 
 (*Jette un dè et renvoie sa valeur*)
 let dice_roll () = (Random.int 6 + 1)
-
+(*
 let player_dr (pl:player) =
-  (*On veut les valeurs des deux dès de façon à ce qu'elles soient mutables*) 
   let d1 = ref (dice_roll()) in
-  let d2 = ref(dice_roll()) in
-  (*On vérifie si on a des premiers doubles*)
-  if !d1 = !d2 then begin 
-    (*On sort de prison si on a deux doubles*)
-    pl.in_jail <- false;
-    move pl (!d1 + !d2);
-    (*On a le droit à un nouveau lancer de dès*)
-    d1 := dice_roll();
-    d2 := dice_roll();
-      if !d1 = !d2 then begin 
-      move pl (!d1 + !d2);
-      (*On a le droit à un nouveau lancer de dès*)
-      d1 := dice_roll();
-      d2 := dice_roll();
-      (*Si on a encore deux doubles on part en prison*)
-        if !d1 = !d2 then go_to_jail pl else move pl (!d1 + !d2) 
+  let d2 = ref (dice_roll()) in
+  if pl.in_jail && pl.turns_injail < 3 then
+    if !d1 = !d2 then 
+      begin
+        pl.in_jail <- false;
+        pl.doubles <- pl.doubles + 1; 
+        move pl (!d1 + !d2);
       end
-    else
-      move pl (!d1 + !d2) 
-  end
+    else 
+      pl.turns_injail <- pl.turns_injail + 1;
+      if pl.turns_injail = 3 then pl.in_jail <- false
   else
-    move pl (!d1 + !d2) 
+    begin
+      while !d1 = !d2 do 
+        pl.doubles <- pl.doubles + 1;
+        move pl (!d1 + !d2);
+        if pl.doubles = 3 then go_to_jail pl
+      done;
+      move pl (!d1 + !d2)
+    end
+*)
+
+  
+
+
+
 
 (*Création du plateau de jeu*)
 
@@ -108,13 +114,64 @@ let (properties: case array) = [|
 
 |]
 
+(*Création de la fonction d'achat*)
+let buy player =
+  let property = properties.(player.pos) in
+  if property.isAvailable && (player.money) >= property.price then begin
+    property.isAvailable <- false;
+    player.money <- player.money - property.price;
+    (player.properties).(property.id) <- true
+  end
+else Printf.printf "Pas assez d'argent"
 
+let random_buy player =
+  if Random.float 1.0 < player.risky then buy player
+
+let player_dr (pl:player) =
+  (*On veut les valeurs des deux dès de façon à ce qu'elles soient mutables*) 
+  let d1 = ref (dice_roll()) in
+  let d2 = ref(dice_roll()) in
+  (*On vérifie si on a des premiers doubles*)
+  if !d1 = !d2 || pl.turns_injail = 3 then begin 
+    (*On sort de prison si on a deux doubles*)
+    pl.in_jail <- false;
+    move pl (!d1 + !d2);
+    random_buy pl;
+    (*On a le droit à un nouveau lancer de dès*)
+    d1 := dice_roll();
+    d2 := dice_roll();
+      if !d1 = !d2 then begin 
+      move pl (!d1 + !d2);
+      random_buy pl;
+      (*On a le droit à un nouveau lancer de dès*)
+      d1 := dice_roll();
+      d2 := dice_roll();
+      (*Si on a encore deux doubles on part en prison*)
+        if !d1 = !d2 then go_to_jail pl else (move pl (!d1 + !d2); random_buy pl;)
+      end
+    else
+      move pl (!d1 + !d2);
+      random_buy pl
+  end
+  else
+    move pl (!d1 + !d2);
+    random_buy pl
 (*Partie simulation*)
+let freq l = let table = Hashtbl.create 39 in
+    let rec func_aux l table =
+      match l with
+      |[] -> ()
+      |a::b -> Hashtbl.replace table a ((Hashtbl.find table a) + 1)
+    in
+    for i=0 to 39 do Hashtbl.add table i 0 done; 
+    func_aux l table 
+
 let test () =
-  let (player1:player) = {id = 0; risky = 0.0; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0} in
-  for i = 0 to 50 do 
+  let (player1:player) = {id = 0; risky = 1.0; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
+  let pos_track = ref [0] in
+  while player1.money > 100 do 
     player_dr player1;
-    if player1.in_jail then Printf.printf "Liberez tous mes copains \n"
+    pos_track := player1.pos :: !pos_track
   done;
-  Printf.printf "La position actuelle du joueur est: %d" player1.pos  
+  freq !pos_track
 
