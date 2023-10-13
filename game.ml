@@ -164,7 +164,13 @@ let freq l = let table = Hashtbl.create 39 in
       |a::b -> Hashtbl.replace table a ((Hashtbl.find table a) + 1)
     in
     for i=0 to 39 do Hashtbl.add table i 0 done; 
-    func_aux l table 
+    func_aux l table;
+    table
+
+let freq_to_prob t =
+  for i = 0 to 39 do
+    Hashtbl.replace t i ((Hashtbl.find t i)/39)
+  done
 
 let test () =
   let (player1:player) = {id = 0; risky = 1.0; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
@@ -173,5 +179,5 @@ let test () =
     player_dr player1;
     pos_track := player1.pos :: !pos_track
   done;
-  freq !pos_track
+  freq_to_prob (freq !pos_track)
 
