@@ -34,7 +34,7 @@ let move (pl:player) (moves:int)=
   if pl.in_jail && pl.turns_injail < 3 then () else
   pl.pos <- (pl.pos + moves) mod 39;
   (*On vérifie si on veut envoyer le joueur en prison et on vérifie si il est dans une case allez en prison*)
-  if (pl.pos = 30) then go_to_jail pl
+  if (pl.pos = 29) then go_to_jail pl
 
 
 (*Jette un dè et renvoie sa valeur*)
@@ -115,19 +115,19 @@ let (properties: case array) = [|
 |]
 
 (*Création de la fonction d'achat*)
-let buy player =
+let buy player  =
   let property = properties.(player.pos) in
   if property.isAvailable && (player.money) >= property.price then begin
     property.isAvailable <- false;
     player.money <- player.money - property.price;
     (player.properties).(property.id) <- true
-  end
-else Printf.printf "Pas assez d'argent"
+  end(*
+  else if  player.money < property.price then Printf.printf "Position: %d Pas assez d'argent\n " player.pos*)
 
-let random_buy player =
-  if Random.float 1.0 < player.risky then buy player
+let random_buy player  =
+  if Random.float 1.0 < player.risky then buy player 
 
-let player_dr (pl:player) =
+let player_dr (pl:player)  =
   (*On veut les valeurs des deux dès de façon à ce qu'elles soient mutables*) 
   let d1 = ref (dice_roll()) in
   let d2 = ref(dice_roll()) in
@@ -142,28 +142,32 @@ let player_dr (pl:player) =
     d2 := dice_roll();
       if !d1 = !d2 then begin 
       move pl (!d1 + !d2);
-      random_buy pl;
+      random_buy pl ;
       (*On a le droit à un nouveau lancer de dès*)
       d1 := dice_roll();
       d2 := dice_roll();
       (*Si on a encore deux doubles on part en prison*)
-        if !d1 = !d2 then go_to_jail pl else (move pl (!d1 + !d2); random_buy pl;)
+        if !d1 = !d2 then go_to_jail pl else (move pl (!d1 + !d2); random_buy pl ;)
       end
     else
       move pl (!d1 + !d2);
       random_buy pl
   end
-  else
+  else(
     move pl (!d1 + !d2);
-    random_buy pl
+    random_buy pl)
+
 (*Partie simulation*)
-let freq l = let table = Hashtbl.create 39 in
+
+(*Fonctions statistiques*)
+let freq l = 
+  let table = Hashtbl.create 38 in
     let rec func_aux l table =
       match l with
       |[] -> ()
-      |a::b -> Hashtbl.replace table a ((Hashtbl.find table a) + 1)
+      |a::b -> Hashtbl.replace table a ((Hashtbl.find table a) + 1); func_aux b table
     in
-    for i=0 to 39 do Hashtbl.add table i 0 done; 
+    for i=0 to 38 do Hashtbl.add table i 0 done; 
     func_aux l table;
     table
 
@@ -172,12 +176,26 @@ let freq_to_prob t =
     Hashtbl.replace t i ((Hashtbl.find t i)/39)
   done
 
+(*Fonctions d'écriture des stats*)
+
+let write_stats file_name table =
+  let oc = open_out file_name in
+  for i = 0 to 38 do
+    Printf.fprintf oc "%d %d\n" i (Hashtbl.find table i)
+  done;
+  close_out
+
+
 let test () =
   let (player1:player) = {id = 0; risky = 1.0; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
   let pos_track = ref [0] in
-  while player1.money > 100 do 
+  let i = ref 0 in
+  while !i < 150 do 
     player_dr player1;
-    pos_track := player1.pos :: !pos_track
+    pos_track := player1.pos :: !pos_track;
+    i := !i + 1;
   done;
-  freq_to_prob (freq !pos_track)
+  write_stats "frequences.csv" (freq !pos_track)
+;;
 
+test()
