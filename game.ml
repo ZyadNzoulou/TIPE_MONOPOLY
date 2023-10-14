@@ -104,7 +104,7 @@ let (properties: case array) = [|
   {id = 29; name = "Allez en Prison"; c_type = GoJail; price = 0; rent = 0; isAvailable = false; ownedBy = None };
   {id = 30; name = "Avenue de Breteuil"; c_type = Vert; price = 300; rent = 26; isAvailable = true; ownedBy = None };
   {id = 31; name = "Avenue Foch"; c_type = Vert; price = 300; rent = 26; isAvailable = true; ownedBy = None };
-  {id = 32; name = "Caisse de Communauté"; c_type = Commu; price = 300; rent = 26; isAvailable = true; ownedBy = None };
+  {id = 32; name = "Caisse de Communauté"; c_type = Commu; price = 300; rent = 26; isAvailable = false; ownedBy = None };
   {id = 33; name = "Boulevard des Capucines"; c_type = Vert; price = 300; rent = 26; isAvailable = true; ownedBy = None };
   {id = 34; name = "Avenue Foch"; c_type = Vert; price = 300; rent = 26; isAvailable = true; ownedBy = None };
   {id = 35; name = "Chance"; c_type = Chance; price = 0; rent = 0; isAvailable = false; ownedBy = None };
@@ -172,30 +172,48 @@ let freq l =
     table
 
 let freq_to_prob t =
-  for i = 0 to 39 do
+  for i = 0 to 38 do
     Hashtbl.replace t i ((Hashtbl.find t i)/39)
   done
 
+let properties_to_list pl =
+  let l = ref [] in
+  for i = 0 to 38 do
+    if pl.properties.(i) then
+      l := properties.(i).name::!l
+  done;
+  !l
+
 (*Fonctions d'écriture des stats*)
 
-let write_stats file_name table =
+let write_stats file_name table var_x var_y =
   let oc = open_out file_name in
+  Printf.fprintf oc "%s, %s\n"var_x var_y;
   for i = 0 to 38 do
-    Printf.fprintf oc "%d %d\n" i (Hashtbl.find table i)
+    Printf.fprintf oc "%d, %d\n" i (Hashtbl.find table i)
   done;
   close_out
 
+let write_list file_name liste =
+  let oc = open_out file_name in
+  let l = ref liste in
+  while !l != [] do
+    Printf.fprintf oc "%s\n" (List.hd !l);
+    l := List.tl !l
+  done;
+  close_out
 
 let test () =
-  let (player1:player) = {id = 0; risky = 1.0; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
+  let (player1:player) = {id = 0; risky = 0.5; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
   let pos_track = ref [0] in
   let i = ref 0 in
-  while !i < 150 do 
+  while !i < 20000 do 
     player_dr player1;
     pos_track := player1.pos :: !pos_track;
     i := !i + 1;
   done;
-  write_stats "frequences.csv" (freq !pos_track)
+  write_stats "frequences.csv" (freq !pos_track) "Numero_Case" "Fréquence";
+  write_list "proprietes.csv" (properties_to_list player1)
 ;;
 
 test()
