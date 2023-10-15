@@ -171,10 +171,12 @@ let freq l =
     func_aux l table;
     table
 
-let freq_to_prob t =
+let freq_to_prob t n =
+  let table = Hashtbl.create 39 in
   for i = 0 to 38 do
-    Hashtbl.replace t i ((Hashtbl.find t i)/39)
-  done
+    Hashtbl.add table i ((float_of_int (Hashtbl.find t i))/.n)
+  done;
+  table
 
 let properties_to_list pl =
   let l = ref [] in
@@ -191,6 +193,14 @@ let write_stats file_name table var_x var_y =
   Printf.fprintf oc "%s, %s\n"var_x var_y;
   for i = 0 to 38 do
     Printf.fprintf oc "%d, %d\n" i (Hashtbl.find table i)
+  done;
+  close_out
+
+let write_stats_float file_name table var_x var_y =
+  let oc = open_out file_name in
+  Printf.fprintf oc "%s, %s\n"var_x var_y;
+  for i = 0 to 38 do
+    Printf.fprintf oc "%d, %f\n" i (Hashtbl.find table i)
   done;
   close_out
 
@@ -213,6 +223,7 @@ let test () =
     i := !i + 1;
   done;
   write_stats "frequences.csv" (freq !pos_track) "Numero_Case" "Fréquence";
+  write_stats_float "probabilites.csv" (freq_to_prob (freq !pos_track) 20000.0) "Numero_Case" "Probabilité";
   write_list "proprietes.csv" (properties_to_list player1)
 ;;
 
