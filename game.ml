@@ -1,16 +1,14 @@
-(*Création du type joueur, qui prend en compte sa position et son état*)
+(*Creátion des classes du jeu*)
 type player = {
   id: int;  
   risky: float;
   mutable pos: int;
   mutable in_jail: bool;
   mutable turns_injail: int;
-  mutable doubles: int;
   mutable money: int;
   mutable properties: bool array
 } 
 
-(*Création du type propriété*)
 type case_type = Marron | Bleu_Ciel | Rose | Orange | Rouge | Jaune | Vert | Bleu | Gare | ServPub | Go | Jail | Chance | Commu |Impot | Park | GoJail
 
 type case = {
@@ -23,54 +21,7 @@ type case = {
   mutable ownedBy : int option
 }
 
-(*Création de la fonction mouvement*)
-let go_to_jail pl =
-  pl.in_jail <- true;
-  pl.turns_injail <- 0;
-  pl.pos <- 10
-
-let move (pl:player) (moves:int)=
-  (*On vérifie si le joueur est en prison*)
-  if pl.in_jail && pl.turns_injail < 3 then () else
-  pl.pos <- (pl.pos + moves) mod 39;
-  (*On vérifie si on veut envoyer le joueur en prison et on vérifie si il est dans une case allez en prison*)
-  if (pl.pos = 30) then go_to_jail pl
-
-
-(*Jette un dè et renvoie sa valeur*)
-let dice_roll () = (Random.int 6 + 1)
-(*
-let player_dr (pl:player) =
-  let d1 = ref (dice_roll()) in
-  let d2 = ref (dice_roll()) in
-  if pl.in_jail && pl.turns_injail < 3 then
-    if !d1 = !d2 then 
-      begin
-        pl.in_jail <- false;
-        pl.doubles <- pl.doubles + 1; 
-        move pl (!d1 + !d2);
-      end
-    else 
-      pl.turns_injail <- pl.turns_injail + 1;
-      if pl.turns_injail = 3 then pl.in_jail <- false
-  else
-    begin
-      while !d1 = !d2 do 
-        pl.doubles <- pl.doubles + 1;
-        move pl (!d1 + !d2);
-        if pl.doubles = 3 then go_to_jail pl
-      done;
-      move pl (!d1 + !d2)
-    end
-*)
-
-  
-
-
-
-
-(*Création du plateau de jeu*)
-
+(*Tableau des propriétés*)
 let (properties: case array) = [|
   {id = 0; name = "Départ"; c_type = Go; price = 0; rent = 0; isAvailable = false; ownedBy = None };
   {id = 1; name = "Boulevard de Belleville"; c_type = Marron; price = 60; rent = 2; isAvailable = true; ownedBy = None };
@@ -115,117 +66,112 @@ let (properties: case array) = [|
 
 |]
 
-(*Création de la fonction d'achat*)
-let buy player  =
-  let property = properties.(player.pos) in
-  if property.isAvailable && (player.money) >= property.price then begin
-    property.isAvailable <- false;
-    player.money <- player.money - property.price;
-    (player.properties).(property.id) <- true
-  end(*
-  else if  player.money < property.price then Printf.printf "Position: %d Pas assez d'argent\n " player.pos*)
+(*Création d'une fonction de mouvement*)
 
-let random_buy player  =
-  if Random.float 1.0 < player.risky then buy player 
+let go_to_jail pl =
+  pl.in_jail <- true;
+  pl.turns_injail <- 0;
+  pl.pos <- 10
 
-let player_dr (pl:player)  =
-  (*On veut les valeurs des deux dès de façon à ce qu'elles soient mutables*) 
-  let d1 = ref (dice_roll()) in
+let move (pl:player) (moves:int) =
+  if pl.in_jail && pl.turns_injail < 3 then pl.turns_injail <- pl.turns_injail + 1
+  else
+    pl.pos <- (pl.pos + moves) mod 40;
+  if (pl.pos = 30) then go_to_jail pl
+
+
+(*Jette un dè et renvoie sa valeur*)
+let dice_roll () = Random.self_init(); (Random.int 6 + 1)
+
+(*Fonction de jeu d'un joueur*)
+
+(*Fonction achat*)
+let buy pl =
+  let property = properties.(pl.pos) in
+  if property.isAvailable && (pl.money) >= property.price then
+    begin
+      property.isAvailable <- false;
+      pl.money <- pl.money - property.price;
+      (pl.properties).(property.id) <- true;
+    end
+
+let random_buy pl = Random.self_init ();
+  if (Random.float 1.0) < pl.risky then buy pl
+  
+(*Fonction de jeu principale*)
+let player_dr (pl:player) =
+  let d1 = ref(dice_roll()) in
   let d2 = ref(dice_roll()) in
-  (*On vérifie si on a des premiers doubles*)
-  if !d1 = !d2 || pl.turns_injail = 3 then begin 
-    (*On sort de prison si on a deux doubles*)
-    pl.in_jail <- false;
+  let dbls = ref 0 in
+  while (!d1 = !d2 && !dbls < 3 ) do
+    dbls := !dbls + 1;
     move pl (!d1 + !d2);
     random_buy pl;
-    (*On a le droit à un nouveau lancer de dès*)
     d1 := dice_roll();
     d2 := dice_roll();
-      if !d1 = !d2 then begin 
-      move pl (!d1 + !d2);
-      random_buy pl ;
-      (*On a le droit à un nouveau lancer de dès*)
-      d1 := dice_roll();
-      d2 := dice_roll();
-      (*Si on a encore deux doubles on part en prison*)
-        if !d1 = !d2 then go_to_jail pl else (move pl (!d1 + !d2); random_buy pl ;)
-      end
-    else
-      move pl (!d1 + !d2);
-      random_buy pl
-  end
-  else(
+  done;
+  if !dbls = 0 then
     move pl (!d1 + !d2);
-    random_buy pl)
+    random_buy pl;
+  if !dbls >= 3 then 
+    go_to_jail pl
 
 (*Partie simulation*)
-
-(*Fonctions statistiques*)
-let freq l = 
-  let table = Hashtbl.create 38 in
-    let rec func_aux l table =
-      match l with
-      |[] -> ()
-      |a::b -> Hashtbl.replace table a ((Hashtbl.find table a) + 1); func_aux b table
-    in
-    for i=0 to 38 do Hashtbl.add table i 0 done; 
-    func_aux l table;
-    table
-
-let freq_to_prob t n =
-  let table = Hashtbl.create 39 in
-  for i = 0 to 38 do
-    Hashtbl.add table i ((float_of_int (Hashtbl.find t i))/.n)
-  done;
-  table
-
-let properties_to_list pl =
-  let l = ref [] in
-  for i = 0 to 38 do
-    if pl.properties.(i) then
-      l := properties.(i).name::!l
-  done;
-  !l
-
-(*Fonctions d'écriture des stats*)
-
-let write_stats file_name table var_x var_y =
+let array_to_csv tab file_name var_x var_y =
   let oc = open_out file_name in
-  Printf.fprintf oc "%s, %s\n"var_x var_y;
-  for i = 0 to 38 do
-    Printf.fprintf oc "%d, %d\n" i (Hashtbl.find table i)
+  Printf.fprintf oc "%s, %s\n" var_x var_y;
+  for i = 0 to 39 do
+    Printf.fprintf oc "%d, %d\n" i tab.(i)
   done;
   close_out
 
-let write_stats_float file_name table var_x var_y =
+let array_to_csv_float tab file_name var_x var_y =
   let oc = open_out file_name in
-  Printf.fprintf oc "%s, %s\n"var_x var_y;
-  for i = 0 to 38 do
-    Printf.fprintf oc "%d, %f\n" i (Hashtbl.find table i)
+  Printf.fprintf oc "%s, %s\n" var_x var_y;
+  for i = 0 to 39 do
+    Printf.fprintf oc "%d, %f\n" i tab.(i)
   done;
-  close_out
+  close_out  
 
-let write_list file_name liste =
-  let oc = open_out file_name in
-  let l = ref liste in
-  while !l != [] do
-    Printf.fprintf oc "%s\n" (List.hd !l);
-    l := List.tl !l
+let array_to_proba tab =
+  let n = Array.length tab in
+  let total = ref 0 in
+  let res = Array.make n 0.0 in
+  for i = 0 to n-1 do
+    total := !total + tab.(i);
   done;
-  close_out
+  for i=0 to n-1 do
+    let freq = float_of_int tab.(i) in
+    let tot = float_of_int !total in
+    res.(i) <- freq/.tot
+  done;
+  res
 
+
+(*Initialisation d'un joeur*)
+let create_player n risk =
+  {id = n;
+  risky = risk;
+  pos = 0;
+  in_jail = false;
+  money = 1500;
+  properties = Array.make 40 false;
+  turns_injail = 0;}
+
+(*Lancement d'un test à un joueur*)
 let test () =
-  let (player1:player) = {id = 0; risky = 0.5; pos = 0; in_jail = false; money = 1500; properties = (Array.make 39 false); turns_injail = 0; doubles = 0} in
-  let pos_track = ref [0] in
+  let pl1 = create_player 1 0.5 in
   let i = ref 0 in
-  while !i < 20000 do 
-    player_dr player1;
-    pos_track := player1.pos :: !pos_track;
+  let pos_track = Array.make 40 0 in
+  pos_track.(0) <- 1;
+  while !i < 100 do
+    player_dr pl1;
     i := !i + 1;
+    pos_track.(pl1.pos) <- pos_track.(pl1.pos) + 1
   done;
-  write_stats "frequences.csv" (freq !pos_track) "Numero_Case" "Fréquence";
-  write_stats_float "probabilites.csv" (freq_to_prob (freq !pos_track) 20000.0) "Numero_Case" "Probabilité";
-  write_list "proprietes.csv" (properties_to_list player1)
+  array_to_csv pos_track "frequences.csv" "Case" "Frequence";
+  let proba = array_to_proba pos_track in
+  array_to_csv_float proba "probabilités.csv" "Case" "Probabilité"
 ;;
 
 test()
