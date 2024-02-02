@@ -238,7 +238,6 @@ let test_2player () =
   while pl1.money > 0 && pl2.money > 0 do
     player_dr pl1;
     player_dr pl2;
-    Printf.printf "Tour %d \nPl1: %d$ \nPl2: %d$ \n" !i pl1.money pl2.money ;
     i := !i + 1;
     pos_track_pl1.(pl1.pos) <- pos_track_pl1.(pl1.pos) + 1;
     pos_track_pl2.(pl2.pos) <- pos_track_pl2.(pl2.pos) + 1;
