@@ -223,11 +223,26 @@ let test_1player nb =
   array_to_csv_float proba "test_1pl_probabilités.csv" "Case" "Probabilité";
   print_list_int !money_track "test_1pl_money.csv"
 
+let run_sim_2pl risk1 risk2 nbExp =
+  let pl1 = create_player 1 risk1 in
+  let pl2 = create_player 2 risk2 in
+  let w1 = ref 0. in
+  let w2 = ref 0. in
+  while (!w1 +. !w2) < nbExp do
+    while pl1.money > 0 && pl2.money > 0 do
+      player_dr pl1;
+      player_dr pl2;
+    done;
+    if pl1.money > 0 then w1 := !w1 +. 1. else w2 := !w2 +. 1. 
+  done;
+  let winRate1 = !w1 /. nbExp in
+  let winRate2 = !w2 /. nbExp in
+  Printf.printf "Winrate pl1 = %f\n Winrate pl2 = %f\n" winRate1 winRate2
 
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
-  let pl1 = create_player 1 0.5 in
-  let pl2 = create_player 2 0.5 in 
+  let pl1 = create_player 1 1.0 in
+  let pl2 = create_player 2 1.0 in 
   let pos_track_pl1 = Array.make 40 0 in
   let pos_track_pl2 = Array.make 40 0 in
   let i = ref 0 in
@@ -257,6 +272,7 @@ let test_2player () =
 
 
 ;;
-test_2player ()
-(*test_1player 10000;;*)
+test_2player ();;
+
+run_sim_2pl 0.5 0.5 10.;;
 
