@@ -1,3 +1,9 @@
+(*Reste à faire:
+   ->Règle des hôtels, il faut modifier la classe joueur pour track le nb de props par couleur. Pq pas utiliser un array?
+   ->Calcul du pourcentage de réussite: jsp comment faire mais il faudra de se focaliser dessus
+   ->Moyennage de l'argent: chiant mais intéressant, il faudra dégager les outliers histoire d'avoir un nb de tours cohérent*)
+
+
 (*Creátion des classes du jeu*)
 type player = {
   id: int;  
