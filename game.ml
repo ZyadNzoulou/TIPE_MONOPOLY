@@ -77,13 +77,14 @@ let go_to_jail pl =
   pl.pos <- 10
 
 let move (pl:player) (moves:int) =
-  if pl.in_jail && pl.turns_injail < 3 then pl.turns_injail <- pl.turns_injail + 1
+  if pl.in_jail && pl.turns_injail < 3 then pl.turns_injail <- pl.turns_injail + 1 (*Si le joueur est en prison et qu'il n'a tjrs pas le droit de sortir*)
   else
+    (*On s'assure de que le joueur est libre*)
     pl.in_jail <- false;
     pl.turns_injail <- 0;
-    if pl.pos + moves >= 40 then pl.money <- pl.money + 200;
-    pl.pos <- (pl.pos + moves) mod 40;
-  if (pl.pos = 30) then go_to_jail pl
+    if pl.pos + moves >= 40 then pl.money <- pl.money + 200; (*Si le joueur passe par la case départ il reçoit son argent*)
+    pl.pos <- (pl.pos + moves) mod 40; (*Calcule la position du joueur après mouvement*)
+  if (pl.pos = 30) then go_to_jail pl (*Case "Allez en prison"*)
 
 
 (*Jette un dè et renvoie sa valeur*)
@@ -94,49 +95,51 @@ let dice_roll () = Random.self_init(); (Random.int 6 + 1)
 (*Fonction achat*)
 let buy pl =
   let property = properties.(pl.pos) in
-  if property.isAvailable && (pl.money) >= property.price then
+  if property.isAvailable && (pl.money) >= property.price then (*Vérifie que le joueur a les moyens et que la propriété est libre*)
     begin
       property.isAvailable <- false;
       pl.money <- pl.money - property.price;
       (pl.properties).(property.id) <- true;
     end
   else
-    if pl.properties.(property.id) && property.nbHouses < 5 then
+    if pl.properties.(property.id) && property.nbHouses < 5 then (*Sinon on vérifie que le joueur possède la propriété et s'il n'a pas atteint le max de maisons*)
       match property.nbHouses with
-      |a when a < 4 -> if pl.money >= property.smPrice then
+      |a when a < 4 -> if pl.money >= property.smPrice then (*Cas où on a le droit d'acheter que des maisons*)
         pl.money <- pl.money - property.smPrice;
         property.nbHouses <- property.nbHouses + 1
-      |a when a = 4 -> if pl.money >= property.bgPrice then
+      |a when a = 4 -> if pl.money >= property.bgPrice then (*Cas où on a le droit d'acheter un  hôtel*)
         pl.money <- pl.money - property.bgPrice;
         property.nbHouses <- property.nbHouses + 1
       |_ -> failwith "Impossible"
 
 
-let random_buy pl = Random.self_init ();
+let random_buy pl = Random.self_init (); (*Fonction d'achat aléatoire*)
   if (Random.float 1.0) < pl.risky then buy pl
 
 (*Fonctions de paiement*)
 let pay pl =
   let property = properties.(pl.pos) in
   let level = property.nbHouses in
-  if not property.isAvailable then 
+  if not property.isAvailable then (*On vérifie que la propriété n'appartient pas au joueur*)
     match property.ownedBy with
-    |None -> pl.money <- pl.money - property.rent.(0)
-    |Some(opp) -> 
+    |None -> pl.money <- pl.money - property.rent.(0) (*Si elle n'appartient à personne, l'argent est retiré mais ne pars vers personne*)
+    |Some(opp) -> (*Dans le cas où elle appartient à qqn, on transfère l'argent à qqn*)
       pl.money <- pl.money - property.rent.(level);
       opp.money <- opp.money + property.rent.(level);
     else ()
   
 (*Fonction de jeu principale*)
 let player_dr (pl:player) =
+  (*On jette les dès et on récupère leur valeur*)
   let d1 = ref(dice_roll()) in
   let d2 = ref(dice_roll()) in
+  (*Afin de compter le nombre de dès doubles obtenus*)
   let dbls = ref 0 in
-  while (!d1 = !d2 && !dbls < 3 ) do
-    dbls := !dbls + 1;
+  while (!d1 = !d2 && !dbls < 3 ) do (*Cas où on obtient des doubles, on a le droit de continuer à jouer*)
+    dbls := !dbls + 1; (*Incrémentation du compteur*)
     move pl (!d1 + !d2);
-    random_buy pl;
-    pay pl;
+    random_buy pl; (*Fonction d'achat*)
+    pay pl; (*Fct paiement de loyer*)
     d1 := dice_roll();
     d2 := dice_roll();
   done;
@@ -144,11 +147,11 @@ let player_dr (pl:player) =
     move pl (!d1 + !d2);
     random_buy pl;
     pay pl;
-  if !dbls >= 3 then 
+  if !dbls >= 3 then (*Si le joueur obtient 3 doubles, il part directement en prison*)
     go_to_jail pl
 
 (*Partie simulation*)
-let array_to_csv tab file_name var_x var_y =
+let array_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir d'un tableau*)
   let oc = open_out file_name in
   Printf.fprintf oc "%s, %s\n" var_x var_y;
   for i = 0 to 39 do
@@ -156,7 +159,7 @@ let array_to_csv tab file_name var_x var_y =
   done;
   close_out
 
-let array_to_csv_float tab file_name var_x var_y =
+let array_to_csv_float tab file_name var_x var_y = (*Idem cependant pour un tableau de float*)
   let oc = open_out file_name in
   Printf.fprintf oc "%s, %s\n" var_x var_y;
   for i = 0 to 39 do
@@ -164,7 +167,7 @@ let array_to_csv_float tab file_name var_x var_y =
   done;
   close_out  
 
-let array_to_proba tab =
+let array_to_proba tab = (*Crée un tableau de probabilités à partir d'un tableau d'entiers*)
   let n = Array.length tab in
   let total = ref 0 in
   let res = Array.make n 0.0 in
@@ -178,14 +181,14 @@ let array_to_proba tab =
   done;
   res
 
-let print_properties pl file_name =
+let print_properties pl file_name = (*Copie les propriétés possédès par un joueur dans un fichier texte*)
   let oc = open_out file_name in
   for i = 0 to 39 do
     if pl.properties.(i) then Printf.fprintf oc "%s\n" properties.(i).name
     done;
   close_out
 
-let print_list_int liste file_name =
+let print_list_int liste file_name = (*Crée un fichier texte à partir d'une liste d'entiers*)
   let oc = open_out file_name in
   let cl = ref liste in
   while !cl <> [] do
@@ -223,22 +226,6 @@ let test_1player nb =
   array_to_csv_float proba "test_1pl_probabilités.csv" "Case" "Probabilité";
   print_list_int !money_track "test_1pl_money.csv"
 
-let run_sim_2pl risk1 risk2 nbExp =
-  let pl1 = create_player 1 risk1 in
-  let pl2 = create_player 2 risk2 in
-  let w1 = ref 0. in
-  let w2 = ref 0. in
-  while (!w1 +. !w2) < nbExp do
-    while pl1.money > 0 && pl2.money > 0 do
-      player_dr pl1;
-      player_dr pl2;
-    done;
-    if pl1.money > 0 then w1 := !w1 +. 1. else w2 := !w2 +. 1. 
-  done;
-  let winRate1 = !w1 /. nbExp in
-  let winRate2 = !w2 /. nbExp in
-  Printf.printf "Winrate pl1 = %f\n Winrate pl2 = %f\n" winRate1 winRate2
-
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
   let pl1 = create_player 1 1.0 in
@@ -274,5 +261,5 @@ let test_2player () =
 ;;
 test_2player ();;
 
-run_sim_2pl 0.5 0.5 10.;;
+
 
