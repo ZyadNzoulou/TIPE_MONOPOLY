@@ -1,18 +1,18 @@
 (*Reste à faire:
-   ->Règle des hôtels, il faut modifier la classe joueur pour track le nb de props par couleur. Pq pas utiliser un array?
    ->Calcul du pourcentage de réussite: jsp comment faire mais il faudra de se focaliser dessus
    ->Moyennage de l'argent: chiant mais intéressant, il faudra dégager les outliers histoire d'avoir un nb de tours cohérent*)
 
 
 (*Creátion des classes du jeu*)
 type player = {
-  id: int;  
-  risky: float;
-  mutable pos: int;
-  mutable in_jail: bool;
-  mutable turns_injail: int;
-  mutable money: int;
-  mutable properties: bool array
+  id: int; (*Identifiant unique au joueur*)
+  risky: float; (*Paramètre de risque du joueur, utilise pour la simulation*)
+  mutable pos: int; (*Position du joueur sur le plateau de jeu*)
+  mutable in_jail: bool; (*Statut du joueur: libre ou pas*)
+  mutable turns_injail: int; (*Suit le nb de tours effectués en prison*)
+  mutable money: int; (*Argent du joueur*)
+  mutable properties: bool array; (*Représente les propriétés possédes par le joueur*)
+  mutable nbH_color: int array; (*Suit le nb de 4 maison sur une propriété par couleur*)
 } 
 
 type case_type = Marron | Bleu_Ciel | Rose | Orange | Rouge | Jaune | Vert | Bleu | Gare | ServPub | Go | Jail | Chance | Commu |Impot | Park | GoJail
@@ -78,9 +78,9 @@ let (properties: case array) = [|
 (*Création d'une fonction de mouvement*)
 
 let go_to_jail pl =
-  pl.in_jail <- true;
-  pl.turns_injail <- 0;
-  pl.pos <- 10
+  pl.in_jail <- true; (*Mise à jour statut du joueur*)
+  pl.turns_injail <- 0; 
+  pl.pos <- 10 (*Renvoie le joueur en prison*)
 
 let move (pl:player) (moves:int) =
   if pl.in_jail && pl.turns_injail < 3 then pl.turns_injail <- pl.turns_injail + 1 (*Si le joueur est en prison et qu'il n'a tjrs pas le droit de sortir*)
@@ -96,6 +96,46 @@ let move (pl:player) (moves:int) =
 (*Jette un dè et renvoie sa valeur*)
 let dice_roll () = Random.self_init(); (Random.int 6 + 1)
 
+(*Convertit une couleur à un entier*)
+let int_of_color (col:case_type) =
+  match col with 
+  |a when a = Marron -> 0
+  |a when a = Bleu_Ciel -> 1
+  |a when a = Rose -> 2
+  |a when a = Orange -> 3
+  |a when a = Rouge -> 4
+  |a when a = Jaune -> 5
+  |a when a = Vert -> 6
+  |a when a = Bleu -> 7
+  |_ -> failwith "n'est pas une couleur"
+
+(*Renvoie le nb de prop associés à une couleur*)
+let nbProp (col:case_type):int= 
+  match col with
+  |a when a = Marron -> 2
+  |a when a = Bleu_Ciel -> 3
+  |a when a = Rose -> 3
+  |a when a = Orange -> 3
+  |a when a = Rouge -> 3
+  |a when a = Jaune -> 3
+  |a when a = Vert -> 3
+  |a when a = Bleu -> 2
+  |_ -> failwith "n'est pas une couleur"
+
+(*Vérifie qu'il s'agit d'une propriété où l'on peut peut placer des maisons*)
+let isHousable (prop:case):bool = 
+  let col = prop.c_type in
+  match col with
+  |a when a = Marron -> true
+  |a when a = Bleu_Ciel -> true
+  |a when a = Rose -> true
+  |a when a = Orange -> true
+  |a when a = Rouge -> true
+  |a when a = Jaune -> true
+  |a when a = Vert -> true
+  |a when a = Bleu -> true
+  |_ -> false
+
 (*Fonction de jeu d'un joueur*)
 
 (*Fonction achat*)
@@ -108,15 +148,17 @@ let buy pl =
       (pl.properties).(property.id) <- true;
     end
   else
-    if pl.properties.(property.id) && property.nbHouses < 5 then (*Sinon on vérifie que le joueur possède la propriété et s'il n'a pas atteint le max de maisons*)
+    if isHousable property && pl.properties.(property.id) && property.nbHouses < 5 then (*Sinon on vérifie que le joueur possède la propriété et s'il n'a pas atteint le max de maisons*)
+      let col = int_of_color property.c_type in
       match property.nbHouses with
       |a when a < 4 -> if pl.money >= property.smPrice then (*Cas où on a le droit d'acheter que des maisons*)
         pl.money <- pl.money - property.smPrice;
-        property.nbHouses <- property.nbHouses + 1
-      |a when a = 4 -> if pl.money >= property.bgPrice then (*Cas où on a le droit d'acheter un  hôtel*)
+        property.nbHouses <- property.nbHouses + 1;
+        if property.nbHouses = 4 then (pl.nbH_color.(col) <- pl.nbH_color.(col)+1) (*Si le joueur à 4 maisons sur une propriété on incrémente le compteur *)
+      |a when a = 4 -> if pl.money >= property.bgPrice && pl.nbH_color.(col) = (nbProp property.c_type) then (*Cas où on a le droit d'acheter un  hôtel*)
         pl.money <- pl.money - property.bgPrice;
         property.nbHouses <- property.nbHouses + 1
-      |_ -> failwith "Impossible"
+      |_ -> ()
 
 
 let random_buy pl = Random.self_init (); (*Fonction d'achat aléatoire*)
@@ -211,7 +253,8 @@ let create_player n risk =
   in_jail = false;
   money = 1500;
   properties = Array.make 40 false;
-  turns_injail = 0;}
+  turns_injail = 0;
+  nbH_color = Array.make 8 0 }
 
 (*Lancement d'un test à un joueur*)
 let test_1player nb = 
