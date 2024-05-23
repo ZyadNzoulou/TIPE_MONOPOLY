@@ -201,17 +201,17 @@ let player_dr (pl:player) =
 (*Partie simulation*)
 let array_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir d'un tableau*)
   let oc = open_out file_name in
-  Printf.fprintf oc "%s, %s\n" var_x var_y;
+  Printf.fprintf oc "%s,%s\n" var_x var_y;
   for i = 0 to 39 do
-    Printf.fprintf oc "%d, %d\n" i tab.(i)
+    Printf.fprintf oc "%d,%d\n" i tab.(i)
   done;
   close_out
 
 let array_to_csv_float tab file_name var_x var_y = (*Idem cependant pour un tableau de float*)
   let oc = open_out file_name in
-  Printf.fprintf oc "%s, %s\n" var_x var_y;
+  Printf.fprintf oc "%s,%s\n" var_x var_y;
   for i = 0 to 39 do
-    Printf.fprintf oc "%d, %f\n" i tab.(i)
+    Printf.fprintf oc "%d,%f\n" i tab.(i)
   done;
   close_out  
 
@@ -239,6 +239,7 @@ let print_properties pl file_name = (*Copie les propriétés possédès par un j
 let print_list_int liste file_name = (*Crée un fichier texte à partir d'une liste d'entiers*)
   let oc = open_out file_name in
   let cl = ref liste in
+  Printf.fprintf oc "Money\n";
   while !cl <> [] do
     Printf.fprintf oc "%d\n" (List.hd !cl);
     cl := List.tl !cl
