@@ -2,19 +2,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-#Money evolution
+#-----Money evolution-----
 column = ["Money"]
 
-df1 = pd.read_csv('player1_test_2pl_money.csv', usecols = column)
-df2 = pd.read_csv('player2_test_2pl_money.csv', usecols = column)
+money_pl1 = pd.read_csv('player1_test_2pl_money.csv', usecols = column)
+money_pl2 = pd.read_csv('player2_test_2pl_money.csv', usecols = column)
 
 #Reverses dataframes
-df1 = df1[::-1].reset_index()
-df2 = df2[::-1].reset_index()
+money_pl1 = money_pl1[::-1].reset_index()
+money_pl2 = money_pl2[::-1].reset_index()
 
 #Plots money evolution
-plt.plot(df1['Money'], label = "Joueur 1")
-plt.plot(df2['Money'], label = "Joueur 2")
+plt.plot(money_pl1['Money'], label = "Joueur 1")
+plt.plot(money_pl2['Money'], label = "Joueur 2")
 
 
 #Plots floor
