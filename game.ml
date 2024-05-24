@@ -42,7 +42,7 @@ let (properties: case array) = [|
   {id = 7; name = "Chance"; c_type = Chance; price = 0; smPrice = 0; bgPrice = 0; rent = [|0;0;0;0;0;0|]; isAvailable = false; ownedBy = None; nbHouses = 0  };
   {id = 8; name = "Rue de Courcelles"; c_type = Bleu_Ciel; price = 100; smPrice = 50; bgPrice = 50; rent = [|6;30;90;270;400;550|]; isAvailable = false; ownedBy = None; nbHouses = 0  };
   {id = 9; name = "Avenue de la République"; c_type = Bleu_Ciel; price = 120; smPrice = 50; bgPrice = 50; rent = [|8;40;100;300;450;600|]; isAvailable = false; ownedBy = None; nbHouses = 0  };
-  {id = 10; name = "Prison"; c_type = Chance; price = 0; smPrice = 0; bgPrice = 0; rent = [|0;0;0;0;0;0|]; isAvailable = false; ownedBy = None; nbHouses = 0  };
+  {id = 10; name = "Prison"; c_type = Jail; price = 0; smPrice = 0; bgPrice = 0; rent = [|0;0;0;0;0;0|]; isAvailable = false; ownedBy = None; nbHouses = 0  };
   {id = 11; name = "Boulevard de la Villette"; c_type = Rose; price = 140; smPrice = 0; bgPrice = 0; rent = [|10;50;150;450;625;750|]; isAvailable = true; ownedBy = None; nbHouses = 0  };
   {id = 12; name = "Compagnie de Distribution d'Électricité"; c_type = ServPub; price = 150; smPrice = 0; bgPrice = 0; rent = [|0;0;0;0;0;0|]; isAvailable = true; ownedBy = None; nbHouses = 0  };
   {id = 13; name = "Avenue de Neuilly"; c_type = Rose; price = 140; smPrice = 100; bgPrice = 100; rent = [|10;50;150;450;625;750|]; isAvailable = true; ownedBy = None; nbHouses = 0  };

@@ -28,5 +28,12 @@ def freq_graph():
     ax2.set_title('Positions du joueur 2')
     plt.subplots_adjust(hspace=0.4)
 
+def prob_graph():
+    fig, (ax1, ax2) = plt.subplots(2)
+    prob_pl1 = pd.read_csv('player1_test_2pl_probabilités.csv')
+    prob_pl2 = pd.read_csv('player2_test_2pl_probabilités.csv')
+    ax1.bar(prob_pl1["Case"], prob_pl1["Probabilité"])
+    ax2.bar(prob_pl1["Case"], prob_pl2["Probabilité"])
+
 plt.legend()
 plt.show()
