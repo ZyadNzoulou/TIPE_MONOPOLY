@@ -18,6 +18,7 @@ def money_graph():
     #Names axis
     plt.ylabel("Argent")
 
+#-----Pos Frequency------
 def freq_graph():
     fig, (ax1, ax2) = plt.subplots(2)
     freq_pl1 = pd.read_csv('player1_test_2pl_frequences.csv')
@@ -28,6 +29,7 @@ def freq_graph():
     ax2.set_title('Positions du joueur 2')
     plt.subplots_adjust(hspace=0.4)
 
+#------Pos Probability-----
 def prob_graph():
     fig, (ax1, ax2) = plt.subplots(2)
     prob_pl1 = pd.read_csv('player1_test_2pl_probabilités.csv')
