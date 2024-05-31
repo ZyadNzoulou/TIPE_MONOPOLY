@@ -4,15 +4,13 @@ import pandas as pd
 
 #-----Money evolution-----
 def money_graph():
-    column = ["Money"]
-    money_pl1 = pd.read_csv('player1_test_2pl_money.csv', usecols = column)
-    money_pl2 = pd.read_csv('player2_test_2pl_money.csv', usecols = column)
+    column = ["Player 1", "Player 2"]
+    moneyEvo = pd.read_csv('Donnees/2pl_MoneyEvolution.csv', usecols = column)
     #Reverses dataframes
-    money_pl1 = money_pl1[::-1].reset_index()
-    money_pl2 = money_pl2[::-1].reset_index()
+    moneyEvo = moneyEvo[::-1].reset_index()
     #Plots money evolution
-    plt.plot(money_pl1['Money'], label = "Joueur 1")
-    plt.plot(money_pl2['Money'], label = "Joueur 2")
+    plt.plot(moneyEvo['Player 1'], label = "Joueur 1")
+    plt.plot(moneyEvo['Player 2'], label = "Joueur 2")
     #Plots floor
     plt.axhline(y=0, linewidth = 2,  color='r', linestyle = 'dotted', label = "Plancher")
     #Names axis
@@ -36,6 +34,8 @@ def prob_graph():
     prob_pl2 = pd.read_csv('player2_test_2pl_probabilités.csv')
     ax1.bar(prob_pl1["Case"], prob_pl1["Probabilité"])
     ax2.bar(prob_pl1["Case"], prob_pl2["Probabilité"])
+
+money_graph()
 
 plt.legend()
 plt.show()

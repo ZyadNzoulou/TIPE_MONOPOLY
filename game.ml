@@ -234,7 +234,7 @@ let print_properties pl file_name = (*Copie les propriétés possédès par un j
   for i = 0 to 39 do
     if pl.properties.(i) then Printf.fprintf oc "%s\n" properties.(i).name
     done;
-  close_out
+  close_out oc
 
 let print_list_int liste file_name = (*Crée un fichier texte à partir d'une liste d'entiers*)
   let oc = open_out file_name in
@@ -246,7 +246,19 @@ let print_list_int liste file_name = (*Crée un fichier texte à partir d'une li
   done;
   close_out
 
-(*Initialisation d'un joeur*)
+let printMoney l1 l2 file_name =
+  let oc = open_out file_name in
+  let cl1 = ref l1 in
+  let cl2 = ref l2 in
+  Printf.fprintf oc "Player 1,Player 2\n";
+  while !cl1 <> [] && !cl2 <> [] do
+    Printf.fprintf oc "%d,%d \n" (List.hd !cl1) (List.hd !cl2);
+    cl1 := List.tl !cl1;
+    cl2 := List.tl !cl2
+  done;
+  close_out
+
+(*Initialisation d'un joueur*)
 let create_player n risk =
   {id = n;
   risky = risk;
@@ -304,9 +316,7 @@ let test_2player () =
   array_to_csv pos_track_pl2 "player2_test_2pl_frequences.csv" "Case" "Frequence";
   let proba2 = array_to_proba pos_track_pl2 in
   array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";
-  print_list_int !money_track_pl1 "player1_test_2pl_money.csv";
-  print_list_int !money_track_pl2 "player2_test_2pl_money.csv"
-
+  printMoney !money_track_pl1 !money_track_pl2 "Donnees/2pl_MoneyEvolution.csv"
 
 ;;
 test_2player ();;
