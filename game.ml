@@ -297,6 +297,10 @@ let test_2player () =
   let i = ref 0 in
   let money_track_pl1 = ref [1500] in
   let money_track_pl2 = ref [1500] in
+  let aux_name () =
+    let timeStr = string_of_float (Unix.time ())  in
+    "Donnees/2pl_MoneyEvolution" ^ timeStr ^ ".csv"
+  in
   pos_track_pl1.(0) <- 0;
   pos_track_pl2.(0) <- 0;
   while pl1.money > 0 && pl2.money > 0 do
@@ -308,15 +312,15 @@ let test_2player () =
     money_track_pl1 := pl1.money :: !money_track_pl1;
     money_track_pl2 := pl2.money :: !money_track_pl2
   done;
-  print_properties pl1 "player1_test_2pl_proprietes.csv";
+  (*print_properties pl1 "player1_test_2pl_proprietes.csv";
   array_to_csv pos_track_pl1 "player1_test_2pl_frequences.csv" "Case" "Frequence";
   let proba1 = array_to_proba pos_track_pl1 in
   array_to_csv_float proba1 "player1_test_2pl_probabilités.csv" "Case" "Probabilité";
   print_properties pl2 "player2_test_2pl_proprietes.csv";
   array_to_csv pos_track_pl2 "player2_test_2pl_frequences.csv" "Case" "Frequence";
   let proba2 = array_to_proba pos_track_pl2 in
-  array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";
-  printMoney !money_track_pl1 !money_track_pl2 "Donnees/2pl_MoneyEvolution.csv"
+  array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";*)
+  printMoney !money_track_pl1 !money_track_pl2 (aux_name ())
 
 ;;
 test_2player ();;
