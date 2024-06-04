@@ -36,7 +36,7 @@ def freq_graph ():
 def col_graph ():
     fig, ax = plt.subplots()
     freq = pd.read_csv('Donnees/freqCouleur.csv')
-    bar_colors = ['tab:brown', 'tab:cyan', 'tab:pink', 'tab:orange', 'tab:red', 'yellow', 'tab:green', 'tab:blue']
+    bar_colors = ['tab:brown', 'deepskyblue', 'deeppink', 'tab:orange', 'tab:red', 'yellow', 'tab:green', 'royalblue']
     ax.bar(freq["Couleur"], freq["Frequence"], color = bar_colors)
 
 
