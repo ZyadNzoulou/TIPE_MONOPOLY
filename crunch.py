@@ -33,6 +33,13 @@ def freq_graph ():
     ax.bar(freq["Case"], freq["Frequence"], width = 0.5)
     ax.set_title('Répartition de positions sur le plateau')
 
+def col_graph ():
+    fig, ax = plt.subplots()
+    freq = pd.read_csv('Donnees/freqCouleur.csv')
+    bar_colors = ['tab:brown', 'tab:cyan', 'tab:pink', 'tab:orange', 'tab:red', 'yellow', 'tab:green', 'tab:blue']
+    ax.bar(freq["Couleur"], freq["Frequence"], color = bar_colors)
+
+
 #------Pos Probability-----
 def prob_graph():
     fig, (ax1, ax2) = plt.subplots(2)
@@ -41,7 +48,7 @@ def prob_graph():
     ax1.bar(prob_pl1["Case"], prob_pl1["Probabilité"])
     ax2.bar(prob_pl1["Case"], prob_pl2["Probabilité"])
 
-freq_graph()
+col_graph()
 
 #plt.legend()
 plt.show()
