@@ -1,7 +1,7 @@
 (*Reste à faire:
    ->Calcul du pourcentage de réussite: jsp comment faire mais il faudra de se focaliser dessus
    ->Moyennage de l'argent: chiant mais intéressant, il faudra dégager les outliers histoire d'avoir un nb de tours cohérent*)
-
+(*Compilation:  ocamlc unix.cma game.ml -o exec *)
 
 (*Creátion des classes du jeu*)
 type player = {
@@ -205,7 +205,7 @@ let array_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir d'
   for i = 0 to 39 do
     Printf.fprintf oc "%d,%d\n" i tab.(i)
   done;
-  close_out
+  close_out oc
 
 let array_to_csv_float tab file_name var_x var_y = (*Idem cependant pour un tableau de float*)
   let oc = open_out file_name in
@@ -213,7 +213,7 @@ let array_to_csv_float tab file_name var_x var_y = (*Idem cependant pour un tabl
   for i = 0 to 39 do
     Printf.fprintf oc "%d,%f\n" i tab.(i)
   done;
-  close_out  
+  close_out oc
 
 let array_to_proba tab = (*Crée un tableau de probabilités à partir d'un tableau d'entiers*)
   let n = Array.length tab in
@@ -244,7 +244,7 @@ let print_list_int liste file_name = (*Crée un fichier texte à partir d'une li
     Printf.fprintf oc "%d\n" (List.hd !cl);
     cl := List.tl !cl
   done;
-  close_out
+  close_out oc
 
 let printMoney l1 l2 file_name =
   let oc = open_out file_name in
@@ -256,7 +256,16 @@ let printMoney l1 l2 file_name =
     cl1 := List.tl !cl1;
     cl2 := List.tl !cl2
   done;
-  close_out
+  close_out oc
+
+let colArray_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir d'un tableau*)
+  let oc = open_out file_name in
+  Printf.fprintf oc "%s,%s\n" var_x var_y;
+  let col = [|"Marron"; "Bleu ciel"; "Rose"; "Orange"; "Rouge"; "Jaune"; "Vert"; "Bleu foncé"|] in
+  for i = 0 to 7 do
+    Printf.fprintf oc "%s,%d\n" col.(i) tab.(i)
+  done;
+  close_out oc
 
 (*Initialisation d'un joueur*)
 let create_player n risk =
@@ -274,36 +283,47 @@ let test_1player nb =
   let pl1 = create_player 1 0.5 in
   let i = ref 0 in
   let pos_track = Array.make 40 0 in
+  let color_track = Array.make 8 0 in
   let money_track = ref [] in
   pos_track.(0) <- 1;
   while !i < nb do
+    let property = properties.(pl1.pos) in
     player_dr pl1;
     i := !i + 1;
     pos_track.(pl1.pos) <- pos_track.(pl1.pos) + 1;
+    if isHousable property then color_track.(int_of_color property.c_type) <- (color_track.(int_of_color property.c_type) + 1);
     money_track := pl1.money :: !money_track
   done;
-  print_properties pl1 "test_1pl_proprietes.csv";
-  array_to_csv pos_track "test_1pl_frequences.csv" "Case" "Frequence";
-  let proba = array_to_proba pos_track in
+  (*print_properties pl1 "test_1pl_proprietes.csv";*)
+  array_to_csv pos_track "Donnees/freqCase.csv" "Case" "Frequence";
+  colArray_to_csv color_track "Donnees/freqCouleur.csv" "Couleur" "Frequence"
+  (*let proba = array_to_proba pos_track in
   array_to_csv_float proba "test_1pl_probabilités.csv" "Case" "Probabilité";
-  print_list_int !money_track "test_1pl_money.csv"
+  print_list_int !money_track "test_1pl_money.csv"*)
 
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
+  Printf.printf "enter\n";
+  (*Initialisation des joueurs avec leur identifiant et leur paramètre risque*)
   let pl1 = create_player 1 1.0 in
   let pl2 = create_player 2 1.0 in 
+  (*Initialisation du traqueur de position pour chaque joueur*)
   let pos_track_pl1 = Array.make 40 0 in
   let pos_track_pl2 = Array.make 40 0 in
+  (*Initialisation du compteur de tours*)
   let i = ref 0 in
+  (*Initialisation du traqueur d'argent pour chaque joueur*)
   let money_track_pl1 = ref [1500] in
   let money_track_pl2 = ref [1500] in
+  (*Fonction de nommage des fichiers csv par date et heure*)
   let aux_name () =
     let timeStr = string_of_float (Unix.time ())  in
-    "Donnees/2pl_MoneyEvolution" ^ timeStr ^ ".csv"
+    "Donnees/2pl_MoneyEvolution" ^ timeStr ^ ".csv" (*Rq: ces fichiers contiennent l'évolution de l'argent pour les deux joueuurs*)
   in
-  pos_track_pl1.(0) <- 0;
-  pos_track_pl2.(0) <- 0;
-  while pl1.money > 0 && pl2.money > 0 do
+  (*Les joueurs commencent à la case d'identifiant 0*)
+  pos_track_pl1.(0) <- 1;
+  pos_track_pl2.(0) <- 1;
+  while pl1.money > 0 && pl2.money > 0 do (*Tant qu'aucun joueur n'a fait faillite on joue*)
     player_dr pl1;
     player_dr pl2;
     i := !i + 1;
@@ -312,6 +332,7 @@ let test_2player () =
     money_track_pl1 := pl1.money :: !money_track_pl1;
     money_track_pl2 := pl2.money :: !money_track_pl2
   done;
+  (*----------------------------Fonctions Misc--------------------------------------*)
   (*print_properties pl1 "player1_test_2pl_proprietes.csv";
   array_to_csv pos_track_pl1 "player1_test_2pl_frequences.csv" "Case" "Frequence";
   let proba1 = array_to_proba pos_track_pl1 in
@@ -320,10 +341,14 @@ let test_2player () =
   array_to_csv pos_track_pl2 "player2_test_2pl_frequences.csv" "Case" "Frequence";
   let proba2 = array_to_proba pos_track_pl2 in
   array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";*)
-  printMoney !money_track_pl1 !money_track_pl2 (aux_name ())
-
+  (*------------------------------Fin des fonctions misc-----------------------------*)
+  printMoney !money_track_pl1 !money_track_pl2 (aux_name ()); (*Création du fichier csv de l'évolution d'argent*)
+  Printf.printf "Debug point\n";
+  flush_all ();
+  if pl1.money > 0 then 1 else 2 (*Renvoie l'id du joueur gagnant*)
 ;;
-test_2player ();;
+
+test_1player 5000;;
 
 
 
