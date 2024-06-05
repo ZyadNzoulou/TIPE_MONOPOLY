@@ -160,6 +160,10 @@ let buy pl =
         property.nbHouses <- property.nbHouses + 1
       |_ -> ()
 
+(*Stratégie naïve*)
+let naiveBuy pl =
+  let property = properties.(pl.pos) in
+  if (property.c_type = Orange || property.c_type = Jaune) then buy pl
 
 let random_buy pl = Random.self_init (); (*Fonction d'achat aléatoire*)
   if (Random.float 1.0) < pl.risky then buy pl
@@ -177,7 +181,7 @@ let pay pl =
     else ()
   
 (*Fonction de jeu principale*)
-let player_dr (pl:player) =
+let player_dr (pl:player) strat =
   (*On jette les dès et on récupère leur valeur*)
   let d1 = ref(dice_roll()) in
   let d2 = ref(dice_roll()) in
@@ -186,14 +190,14 @@ let player_dr (pl:player) =
   while (!d1 = !d2 && !dbls < 3 ) do (*Cas où on obtient des doubles, on a le droit de continuer à jouer*)
     dbls := !dbls + 1; (*Incrémentation du compteur*)
     move pl (!d1 + !d2);
-    random_buy pl; (*Fonction d'achat*)
+    strat pl; (*Fonction d'achat*)
     pay pl; (*Fct paiement de loyer*)
     d1 := dice_roll();
     d2 := dice_roll();
   done;
   if !dbls = 0 then
     move pl (!d1 + !d2);
-    random_buy pl;
+    strat pl;
     pay pl;
   if !dbls >= 3 then (*Si le joueur obtient 3 doubles, il part directement en prison*)
     go_to_jail pl
@@ -288,10 +292,10 @@ let test_1player nb =
   pos_track.(0) <- 1;
   while !i < nb do
     let property = properties.(pl1.pos) in
-    player_dr pl1;
+    player_dr pl1 naiveBuy;
     i := !i + 1;
     pos_track.(pl1.pos) <- pos_track.(pl1.pos) + 1;
-    if isHousable property then color_track.(int_of_color property.c_type) <- (color_track.(int_of_color property.c_type) + 1);
+    if isHousable property then color_track.(int_of_color property.c_type) <- (color_track.(int_of_color property.c_type) + 1); (*Vérifie que la présente case est une couleur et agit accordingly*)
     money_track := pl1.money :: !money_track
   done;
   (*print_properties pl1 "test_1pl_proprietes.csv";*)
@@ -324,8 +328,8 @@ let test_2player () =
   pos_track_pl1.(0) <- 1;
   pos_track_pl2.(0) <- 1;
   while pl1.money > 0 && pl2.money > 0 do (*Tant qu'aucun joueur n'a fait faillite on joue*)
-    player_dr pl1;
-    player_dr pl2;
+    player_dr pl1 naiveBuy;
+    player_dr pl2 random_buy;
     i := !i + 1;
     pos_track_pl1.(pl1.pos) <- pos_track_pl1.(pl1.pos) + 1;
     pos_track_pl2.(pl2.pos) <- pos_track_pl2.(pl2.pos) + 1;
@@ -348,7 +352,7 @@ let test_2player () =
   if pl1.money > 0 then 1 else 2 (*Renvoie l'id du joueur gagnant*)
 ;;
 
-test_1player 5000;;
+test_2player ();;
 
 
 

@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from glob import glob
 
 #-----Money evolution-----
 def money_graph():
     column = ["Player 1", "Player 2"]
-    moneyEvo = pd.read_csv('Donnees/2pl_MoneyEvolution.csv', usecols = column)
+    file = glob('Donnees/2pl_MoneyEvolution*.csv')[0]
+    moneyEvo = pd.read_csv(file, usecols = column)
     #Reverses dataframes
     moneyEvo = moneyEvo[::-1].reset_index()
     #Plots money evolution
@@ -48,7 +50,7 @@ def prob_graph():
     ax1.bar(prob_pl1["Case"], prob_pl1["Probabilité"])
     ax2.bar(prob_pl1["Case"], prob_pl2["Probabilité"])
 
-col_graph()
+money_graph()
 
-#plt.legend()
+plt.legend()
 plt.show()
