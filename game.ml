@@ -1,5 +1,4 @@
 (*Reste à faire:
-   ->Calcul du pourcentage de réussite: jsp comment faire mais il faudra de se focaliser dessus
    ->Moyennage de l'argent: chiant mais intéressant, il faudra dégager les outliers histoire d'avoir un nb de tours cohérent*)
 (*Compilation:  ocamlc unix.cma game.ml -o exec *)
 
@@ -13,6 +12,9 @@ type player = {
   mutable money: int; (*Argent du joueur*)
   mutable properties: bool array; (*Représente les propriétés possédes par le joueur*)
   mutable nbH_color: int array; (*Suit le nb de 4 maison sur une propriété par couleur*)
+  mutable nbH: int;
+  mutable nbM: int;
+  mutable jailCard: bool;
 } 
 
 type case_type = Marron | Bleu_Ciel | Rose | Orange | Rouge | Jaune | Vert | Bleu | Gare | ServPub | Go | Jail | Chance | Commu |Impot | Park | GoJail
@@ -75,6 +77,7 @@ let (properties: case array) = [|
 
 |]
 
+
 (*Création d'une fonction de mouvement*)
 
 let go_to_jail pl =
@@ -83,15 +86,41 @@ let go_to_jail pl =
   pl.pos <- 10 (*Renvoie le joueur en prison*)
 
 let move (pl:player) (moves:int) =
-  if pl.in_jail && pl.turns_injail < 3 then pl.turns_injail <- pl.turns_injail + 1 (*Si le joueur est en prison et qu'il n'a tjrs pas le droit de sortir*)
+  if pl.in_jail && pl.turns_injail < 3 && (not pl.jailCard) then pl.turns_injail <- pl.turns_injail + 1 (*Si le joueur est en prison et qu'il n'a tjrs pas le droit de sortir*)
   else
     (*On s'assure de que le joueur est libre*)
+    if pl.jailCard  && pl.in_jail then pl.jailCard <- false;
     pl.in_jail <- false;
     pl.turns_injail <- 0;
     if pl.pos + moves >= 40 then pl.money <- pl.money + 200; (*Si le joueur passe par la case départ il reçoit son argent*)
     pl.pos <- (pl.pos + moves) mod 40; (*Calcule la position du joueur après mouvement*)
   if (pl.pos = 30) then go_to_jail pl (*Case "Allez en prison"*)
 
+(*Cartes chances*)
+let chance pl = 
+  Random.self_init ();
+  let property = properties.(pl.pos) in
+  if property.c_type = Chance then begin
+    let cId = 1 + Random.int (16) in
+    match cId with
+    |n when n = 1 -> pl.pos <- 39
+    |n when n = 2 -> pl.pos <- 0
+    |n when  n = 3 -> (if pl.pos > 24 then pl.money <- pl.money + 200); pl.pos <- 24
+    |n when n = 4 -> (if pl.pos > 11 then pl.money <- pl.money + 200); pl.pos <- 11
+    |n when n = 5 -> pl.money <- pl.money - 40*pl.nbM - 115*pl.nbH
+    |n when n = 6 -> (if pl.pos > 15 then pl.money <- pl.money + 200); pl.pos <- 15
+    |n when n = 7 -> pl.money <- pl.money + 100
+    |n when n = 8 -> pl.money <- pl.money + 50
+    |n when n = 9 -> pl.jailCard <- true (*Get out of jail card*)
+    |n when n = 10 -> move pl (-3)
+    |n when n = 11 -> go_to_jail pl
+    |n when n = 12 -> pl.money <- pl.money - 25*pl.nbM - 100*pl.nbH
+    |n when n = 13 -> pl.money <- pl.money - 15
+    |n when n = 14 -> pl.money <- pl.money - 150
+    |n when n = 15 -> pl.money <- pl.money - 20
+    |n when n = 16 -> pl.money <- pl.money + 150
+    |_ -> failwith "unexpected"
+  end
 
 (*Jette un dè et renvoie sa valeur*)
 let dice_roll () = Random.self_init(); (Random.int 6 + 1)
@@ -154,10 +183,13 @@ let buy pl =
       |a when a < 4 -> if pl.money >= property.smPrice then (*Cas où on a le droit d'acheter que des maisons*)
         pl.money <- pl.money - property.smPrice;
         property.nbHouses <- property.nbHouses + 1;
+        pl.nbM <- pl.nbM + 1;
         if property.nbHouses = 4 then (pl.nbH_color.(col) <- pl.nbH_color.(col)+1) (*Si le joueur à 4 maisons sur une propriété on incrémente le compteur *)
       |a when a = 4 -> if pl.money >= property.bgPrice && pl.nbH_color.(col) = (nbProp property.c_type) then (*Cas où on a le droit d'acheter un  hôtel*)
         pl.money <- pl.money - property.bgPrice;
-        property.nbHouses <- property.nbHouses + 1
+        property.nbHouses <- property.nbHouses + 1;
+        pl.nbM <- pl.nbM - 4;
+        pl.nbH <- pl.nbH + 1;
       |_ -> ()
 
 (*Stratégie naïve*)
@@ -192,6 +224,7 @@ let player_dr (pl:player) strat =
     move pl (!d1 + !d2);
     strat pl; (*Fonction d'achat*)
     pay pl; (*Fct paiement de loyer*)
+    chance pl;
     d1 := dice_roll();
     d2 := dice_roll();
   done;
@@ -199,6 +232,7 @@ let player_dr (pl:player) strat =
     move pl (!d1 + !d2);
     strat pl;
     pay pl;
+    chance pl;
   if !dbls >= 3 then (*Si le joueur obtient 3 doubles, il part directement en prison*)
     go_to_jail pl
 
@@ -280,7 +314,10 @@ let create_player n risk =
   money = 1500;
   properties = Array.make 40 false;
   turns_injail = 0;
-  nbH_color = Array.make 8 0 }
+  nbH_color = Array.make 8 0;
+  nbH = 0;
+  nbM = 0;
+  jailCard = false}
 
 (*Lancement d'un test à un joueur*)
 let test_1player nb = 
@@ -307,9 +344,8 @@ let test_1player nb =
 
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
-  Printf.printf "enter\n";
   (*Initialisation des joueurs avec leur identifiant et leur paramètre risque*)
-  let pl1 = create_player 1 1.0 in
+  let pl1 = create_player 1 0.5 in
   let pl2 = create_player 2 1.0 in 
   (*Initialisation du traqueur de position pour chaque joueur*)
   let pos_track_pl1 = Array.make 40 0 in
@@ -337,7 +373,7 @@ let test_2player () =
     money_track_pl2 := pl2.money :: !money_track_pl2
   done;
   (*----------------------------Fonctions Misc--------------------------------------*)
-  (*print_properties pl1 "player1_test_2pl_proprietes.csv";
+  print_properties pl1 "player1_test_2pl_proprietes.csv";(*
   array_to_csv pos_track_pl1 "player1_test_2pl_frequences.csv" "Case" "Frequence";
   let proba1 = array_to_proba pos_track_pl1 in
   array_to_csv_float proba1 "player1_test_2pl_probabilités.csv" "Case" "Probabilité";
@@ -347,12 +383,11 @@ let test_2player () =
   array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";*)
   (*------------------------------Fin des fonctions misc-----------------------------*)
   printMoney !money_track_pl1 !money_track_pl2 (aux_name ()); (*Création du fichier csv de l'évolution d'argent*)
-  Printf.printf "Debug point\n";
   flush_all ();
   if pl1.money > 0 then 1 else 2 (*Renvoie l'id du joueur gagnant*)
 ;;
 
-test_2player ();;
+test_1player 5000;;
 
 
 
