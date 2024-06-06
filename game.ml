@@ -96,6 +96,14 @@ let move (pl:player) (moves:int) =
     pl.pos <- (pl.pos + moves) mod 40; (*Calcule la position du joueur après mouvement*)
   if (pl.pos = 30) then go_to_jail pl (*Case "Allez en prison"*)
 
+let closestGare pl =
+let pos = pl.pos in
+  match pos with
+  |p when p > 0 && p <=10 -> (if p > 5 then pl.money <- pl.money + 200); pl.pos <- 5
+  |p when p > 10 && p <= 20 -> (if p > 15 then pl.money <- pl.money + 200); pl.pos <- 15
+  |p when p > 20 && p <= 30 -> (if p > 25 then pl.money <- pl.money + 200); pl.pos <- 25
+  |p when p > 30 && p <= 40 -> (if p > 35 then pl.money <- pl.money + 200); pl.pos <- 35
+  |_ -> failwith "unexpected"
 (*Cartes chances*)
 let chance pl = 
   Random.self_init ();
@@ -119,6 +127,31 @@ let chance pl =
     |n when n = 14 -> pl.money <- pl.money - 150
     |n when n = 15 -> pl.money <- pl.money - 20
     |n when n = 16 -> pl.money <- pl.money + 150
+    |_ -> failwith "unexpected"
+  end
+
+let commu pl = 
+  Random.self_init ();
+  let property = properties.(pl.pos) in
+  if property.c_type = Commu then begin
+    let cId = 1 + Random.int (16) in
+    match cId with
+    |n when n = 1 -> pl.pos <- 0
+    |n when n = 2 -> pl.money <- pl.money + 200
+    |n when n = 3 -> pl.money <- pl.money - 50
+    |n when n = 4 -> pl.money <- pl.money + 50
+    |n when n = 5 -> pl.jailCard <- true (*Get out of jail card*)
+    |n when n = 6 -> go_to_jail pl
+    |n when n = 7 -> pl.pos <- 1
+    |n when n = 8 -> pl.money <- pl.money + 100
+    |n when n = 9 -> pl.money <- pl.money - 10 (*Anniversaire, j'ai un peu triché*)
+    |n when n = 10 -> pl.money <- pl.money + 20
+    |n when n = 11 -> pl.money <- pl.money + 25
+    |n when n = 12 -> pl.money <- pl.money - 50
+    |n when n = 13 -> if Random.int(2) = 0 then chance pl else pl.money <- pl.money - 10
+    |n when n = 14 -> closestGare pl
+    |n when n = 15 -> pl.money <- pl.money + 10
+    |n when n = 16 -> pl.money <- pl.money + 100
     |_ -> failwith "unexpected"
   end
 
@@ -222,17 +255,19 @@ let player_dr (pl:player) strat =
   while (!d1 = !d2 && !dbls < 3 ) do (*Cas où on obtient des doubles, on a le droit de continuer à jouer*)
     dbls := !dbls + 1; (*Incrémentation du compteur*)
     move pl (!d1 + !d2);
-    strat pl; (*Fonction d'achat*)
-    pay pl; (*Fct paiement de loyer*)
     chance pl;
+    commu pl;
+    strat pl; (*Fonction d'achat*)
+    pay pl; (*Fct paiement de loyer*) 
     d1 := dice_roll();
     d2 := dice_roll();
   done;
   if !dbls = 0 then
     move pl (!d1 + !d2);
+    chance pl;
+    commu pl;
     strat pl;
     pay pl;
-    chance pl;
   if !dbls >= 3 then (*Si le joueur obtient 3 doubles, il part directement en prison*)
     go_to_jail pl
 
