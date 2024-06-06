@@ -6,6 +6,7 @@
 type player = {
   id: int; (*Identifiant unique au joueur*)
   risky: float; (*Paramètre de risque du joueur, utilise pour la simulation*)
+  saving: float;
   mutable pos: int; (*Position du joueur sur le plateau de jeu*)
   mutable in_jail: bool; (*Statut du joueur: libre ou pas*)
   mutable turns_injail: int; (*Suit le nb de tours effectués en prison*)
@@ -208,6 +209,7 @@ let buy pl =
       property.isAvailable <- false;
       pl.money <- pl.money - property.price;
       (pl.properties).(property.id) <- true;
+      property.ownedBy <- Some(pl)
     end
   else
     if isHousable property && pl.properties.(property.id) && property.nbHouses < 5 then (*Sinon on vérifie que le joueur possède la propriété et s'il n'a pas atteint le max de maisons*)
@@ -233,12 +235,32 @@ let naiveBuy pl =
 let random_buy pl = Random.self_init (); (*Fonction d'achat aléatoire*)
   if (Random.float 1.0) < pl.risky then buy pl
 
+let savBuy pl =
+  let money = float_of_int pl.money in
+  let sav = pl.saving in
+  let property = properties.(pl.pos) in
+  if pl.properties.(property.id) then begin
+    if property.nbHouses < 4 then(
+      let price = float_of_int property.smPrice in
+      let ratio = price/.money in
+      if ratio < sav then random_buy pl)
+    else
+      (
+        let price = float_of_int property.bgPrice in
+        let ratio = price/.money in
+        if ratio < sav then random_buy pl) end
+  else
+    let price = float_of_int property.price in
+    let ratio = price/.money in
+    if ratio < sav then random_buy pl
+
 (*Fonctions de paiement*)
 let pay pl =
   let property = properties.(pl.pos) in
   let level = property.nbHouses in
   if not property.isAvailable then (*On vérifie que la propriété n'appartient pas au joueur*)
     match property.ownedBy with
+    |None when isHousable property -> ()
     |None -> pl.money <- pl.money - property.rent.(0) (*Si elle n'appartient à personne, l'argent est retiré mais ne pars vers personne*)
     |Some(opp) -> (*Dans le cas où elle appartient à qqn, on transfère l'argent à qqn*)
       pl.money <- pl.money - property.rent.(level);
@@ -341,9 +363,10 @@ let colArray_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir
   close_out oc
 
 (*Initialisation d'un joueur*)
-let create_player n risk =
+let create_player n risk sav =
   {id = n;
   risky = risk;
+  saving = sav;
   pos = 0;
   in_jail = false;
   money = 1500;
@@ -356,7 +379,7 @@ let create_player n risk =
 
 (*Lancement d'un test à un joueur*)
 let test_1player nb = 
-  let pl1 = create_player 1 0.5 in
+  let pl1 = create_player 1 0.5 0.25 in
   let i = ref 0 in
   let pos_track = Array.make 40 0 in
   let color_track = Array.make 8 0 in
@@ -380,8 +403,8 @@ let test_1player nb =
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
   (*Initialisation des joueurs avec leur identifiant et leur paramètre risque*)
-  let pl1 = create_player 1 0.5 in
-  let pl2 = create_player 2 1.0 in 
+  let pl1 = create_player 1 0.0 0.5 in
+  let pl2 = create_player 2 0.5 0.5 in 
   (*Initialisation du traqueur de position pour chaque joueur*)
   let pos_track_pl1 = Array.make 40 0 in
   let pos_track_pl2 = Array.make 40 0 in
@@ -392,15 +415,15 @@ let test_2player () =
   let money_track_pl2 = ref [1500] in
   (*Fonction de nommage des fichiers csv par date et heure*)
   let aux_name () =
-    let timeStr = string_of_float (Unix.time ())  in
+    let timeStr = string_of_float (Unix.gettimeofday ())  in
     "Donnees/2pl_MoneyEvolution" ^ timeStr ^ ".csv" (*Rq: ces fichiers contiennent l'évolution de l'argent pour les deux joueuurs*)
   in
   (*Les joueurs commencent à la case d'identifiant 0*)
   pos_track_pl1.(0) <- 1;
   pos_track_pl2.(0) <- 1;
   while pl1.money > 0 && pl2.money > 0 do (*Tant qu'aucun joueur n'a fait faillite on joue*)
-    player_dr pl1 naiveBuy;
-    player_dr pl2 random_buy;
+    player_dr pl1 savBuy;
+    player_dr pl2 savBuy;
     i := !i + 1;
     pos_track_pl1.(pl1.pos) <- pos_track_pl1.(pl1.pos) + 1;
     pos_track_pl2.(pl2.pos) <- pos_track_pl2.(pl2.pos) + 1;
@@ -408,11 +431,11 @@ let test_2player () =
     money_track_pl2 := pl2.money :: !money_track_pl2
   done;
   (*----------------------------Fonctions Misc--------------------------------------*)
-  print_properties pl1 "player1_test_2pl_proprietes.csv";(*
+  (*print_properties pl1 "player1_test_2pl_proprietes.csv";*)(*
   array_to_csv pos_track_pl1 "player1_test_2pl_frequences.csv" "Case" "Frequence";
   let proba1 = array_to_proba pos_track_pl1 in
   array_to_csv_float proba1 "player1_test_2pl_probabilités.csv" "Case" "Probabilité";
-  print_properties pl2 "player2_test_2pl_proprietes.csv";
+  *)(*print_properties pl2 "player2_test_2pl_proprietes.csv";*)(*
   array_to_csv pos_track_pl2 "player2_test_2pl_frequences.csv" "Case" "Frequence";
   let proba2 = array_to_proba pos_track_pl2 in
   array_to_csv_float proba2 "player2_test_2pl_probabilités.csv" "Case" "Probabilité";*)
@@ -422,7 +445,7 @@ let test_2player () =
   if pl1.money > 0 then 1 else 2 (*Renvoie l'id du joueur gagnant*)
 ;;
 
-test_1player 5000;;
+test_2player ();;
 
 
 

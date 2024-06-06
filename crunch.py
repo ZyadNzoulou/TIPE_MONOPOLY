@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 import numpy as np
 import pandas as pd
 from glob import glob
@@ -6,7 +6,7 @@ from glob import glob
 #-----Money evolution-----
 def money_graph():
     column = ["Player 1", "Player 2"]
-    file = glob('Donnees/2pl_MoneyEvolution*.csv')[0]
+    file = glob('Donnees/2pl_MoneyEvolution*.csv')[-1]
     moneyEvo = pd.read_csv(file, usecols = column)
     #Reverses dataframes
     moneyEvo = moneyEvo[::-1].reset_index()
@@ -50,7 +50,21 @@ def prob_graph():
     ax1.bar(prob_pl1["Case"], prob_pl1["Probabilité"])
     ax2.bar(prob_pl1["Case"], prob_pl2["Probabilité"])
 
-money_graph()
+def plotWR():
+    fig, ax = plt.subplots()
+    strats = ['Témoin', 'Compulsif', 'Conservateur', 'Radin']
+    wr = [52.72, 33.33, 58.18, 53.57]
+    ax.bar(strats, wr)
+    ax.set_title('Taux de victoire par stratégie (classique)')
+
+def plotNewWR():
+    fig, ax = plt.subplots()
+    strats = ['Témoin', 'Témoin Conservateur', 'Compulsif', 'Compulsif Conservateur','Conservateur', 'Conservateur Conservateur', 'Radin']
+    wr = [57.14, 52.47, 57.42, 67.36, 27.72, 21.78, 3.96]
+    ax.bar(strats, wr)
+    ax.set_title('Taux de victoire par stratégie (nouvelle)')
+
+plotWR()
 
 plt.legend()
 plt.show()
