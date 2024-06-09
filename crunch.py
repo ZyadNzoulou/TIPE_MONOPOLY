@@ -6,7 +6,7 @@ from glob import glob
 #-----Money evolution-----
 def money_graph():
     column = ["Player 1", "Player 2"]
-    file = glob('Donnees/2pl_MoneyEvolution*.csv')[-1]
+    file = glob('Donnees/2pl_MoneyEvolution*.csv')[0]
     moneyEvo = pd.read_csv(file, usecols = column)
     #Reverses dataframes
     moneyEvo = moneyEvo[::-1].reset_index()
@@ -64,7 +64,40 @@ def plotNewWR():
     ax.bar(strats, wr)
     ax.set_title('Taux de victoire par stratégie (nouvelle)')
 
-plotWR()
+def plotNaif():
+    fig, ax = plt.subplots()
+    strats = ['vs Témoin Classique', 'vs Nouveau Témoin']
+    wr = [92.08, 84.16]
+    ax.bar(strats, wr)
+    ax.set_title('Taux de victoire pour la stratégie naïve')
+
+def bestNewStrats ():
+    fig, ax = plt.subplots()
+    strats = ['Naif', 'Compulsif Cons.', 'Control', 'Conservateur Cons.']
+    wr = [84.16, 67.33, 57.14, 21.78]
+    ax.bar(strats, wr)
+    ax.set_title('Comparaison du taux de victoire pour chaque strat.')
+
+def compMoneyGraph ():
+    column = ["Player 1", "Player 2"]
+    mini = 10000
+    for file in glob('Donnees/2pl_MoneyEvolution*.csv'):
+        moneyEvo = pd.read_csv(file, usecols = column)
+        #Reverses dataframes
+        moneyEvo = moneyEvo[::-1].reset_index()
+        #Plots money evolution
+        plt.plot(moneyEvo['Player 1'], label = "Joueur 1")
+        plt.plot(moneyEvo['Player 2'], label = "Joueur 2")
+        if len(moneyEvo.index) < mini:
+            mini = len(moneyEvo.index)
+    #Plots floor
+    plt.axhline(y=0, linewidth = 2,  color='r', linestyle = 'dotted', label = "Plancher")
+    #Plots vertical line
+    plt.axvline(x = mini - 1, linewidth = 2,  color='r', linestyle = '-', label = "Limite 1re strat.")
+    #Names axis
+    plt.ylabel("Argent")
+
+compMoneyGraph()
 
 plt.legend()
 plt.show()

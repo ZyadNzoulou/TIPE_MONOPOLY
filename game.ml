@@ -1,5 +1,3 @@
-(*Reste à faire:
-   ->Moyennage de l'argent: chiant mais intéressant, il faudra dégager les outliers histoire d'avoir un nb de tours cohérent*)
 (*Compilation:  ocamlc unix.cma game.ml -o exec *)
 
 (*Creátion des classes du jeu*)
@@ -227,15 +225,10 @@ let buy pl =
         pl.nbH <- pl.nbH + 1;
       |_ -> ()
 
-(*Stratégie naïve*)
-let naiveBuy pl =
-  let property = properties.(pl.pos) in
-  if (property.c_type = Orange || property.c_type = Jaune) then buy pl
-
 let random_buy pl = Random.self_init (); (*Fonction d'achat aléatoire*)
   if (Random.float 1.0) < pl.risky then buy pl
 
-let savBuy pl =
+let savBuy pl = (*Fonction d'achat aléatoire mais prenant en compte l'argent du joueur*)
   let money = float_of_int pl.money in
   let sav = pl.saving in
   let property = properties.(pl.pos) in
@@ -253,6 +246,32 @@ let savBuy pl =
     let price = float_of_int property.price in
     let ratio = price/.money in
     if ratio < sav then random_buy pl
+
+(*Mise en place simpliste de la stratégie naïve*)
+let naiveBuy pl =
+  let property = properties.(pl.pos) in
+  let money = float_of_int pl.money in
+  if property.c_type = Orange || property.c_type = Rouge then
+    buy pl
+  else 
+    if (property.c_type = Jaune || property.c_type = Rose) then begin
+    if pl.properties.(property.id) then begin
+      if property.nbHouses < 4 then(
+        let price = float_of_int property.smPrice in
+        let ratio = price/.money in
+        if ratio < 0.25 then buy pl)
+      else
+        (
+          let price = float_of_int property.bgPrice in
+          let ratio = price/.money in
+          if ratio < 0.25 then buy pl) end
+    else
+      let price = float_of_int property.price in
+      let ratio = price/.money in
+      if ratio < 0.25 then buy pl
+  end
+
+    
 
 (*Fonctions de paiement*)
 let pay pl =
@@ -292,6 +311,7 @@ let player_dr (pl:player) strat =
     pay pl;
   if !dbls >= 3 then (*Si le joueur obtient 3 doubles, il part directement en prison*)
     go_to_jail pl
+
 
 (*Partie simulation*)
 let array_to_csv tab file_name var_x var_y = (*Crée un fichier csv à partir d'un tableau*)
@@ -403,7 +423,7 @@ let test_1player nb =
 (*Lancement d'un test à deux joueurs*)
 let test_2player () =
   (*Initialisation des joueurs avec leur identifiant et leur paramètre risque*)
-  let pl1 = create_player 1 0.0 0.5 in
+  let pl1 = create_player 1 0.5 0.5 in
   let pl2 = create_player 2 0.5 0.5 in 
   (*Initialisation du traqueur de position pour chaque joueur*)
   let pos_track_pl1 = Array.make 40 0 in
@@ -422,8 +442,8 @@ let test_2player () =
   pos_track_pl1.(0) <- 1;
   pos_track_pl2.(0) <- 1;
   while pl1.money > 0 && pl2.money > 0 do (*Tant qu'aucun joueur n'a fait faillite on joue*)
-    player_dr pl1 savBuy;
-    player_dr pl2 savBuy;
+    player_dr pl1 random_buy;
+    player_dr pl2 random_buy;
     i := !i + 1;
     pos_track_pl1.(pl1.pos) <- pos_track_pl1.(pl1.pos) + 1;
     pos_track_pl2.(pl2.pos) <- pos_track_pl2.(pl2.pos) + 1;
